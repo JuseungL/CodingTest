@@ -4,6 +4,7 @@ N, M = map(int, sys.stdin.readline().split())
 ricecakes = list(map(int, sys.stdin.readline().split()))
 
 
+# 살짝 변형
 def binary_search(arr, target, start, end):
     if start > end:
         return None

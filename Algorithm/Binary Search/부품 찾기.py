@@ -7,6 +7,7 @@ M = int(sys.stdin.readline().rstrip())
 lookingfor = list(map(int, sys.stdin.readline().rstrip().split()))
 
 
+# binary search 그대로 쓰기. 외우는게 좋을 듯
 def binary_search(arr, target, start, end):
     if start > end:
         return None
