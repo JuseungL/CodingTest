@@ -6,18 +6,107 @@ WHERE c.CAR_TYPE = '세단'
     AND MONTH(h.START_DATE) = 10
 ORDER BY CAR_ID DESC
 
---CAR_RENTAL_COMPANY_RENTAL_HISTORY 테이블에서 평균 대여 기간이 7일 이상인 자동차들의 자동차 ID와 평균 대여 기간(컬럼명: AVERAGE_DURATION) 리스트를 출력하는 SQL문을 작성해주세요. 평균 대여 기간은 소수점 두번째 자리에서 반올림하고, 결과는 평균 대여 기간을 기준으로 내림차순 정렬해주시고, 평균 대여 기간이 같으면 자동차 ID를 기준으로 내림차순 정렬해주세요.
+-- CAR_RENTAL_COMPANY_RENTAL_HISTORY 테이블에서 평균 대여 기간이 7일 이상인 자동차들의 자동차 ID와 평균 대여 기간(컬럼명: AVERAGE_DURATION) 리스트를 출력하는 SQL문을 작성해주세요. 평균 대여 기간은 소수점 두번째 자리에서 반올림하고, 결과는 평균 대여 기간을 기준으로 내림차순 정렬해주시고, 평균 대여 기간이 같으면 자동차 ID를 기준으로 내림차순 정렬해주세요.
+-- 그룹화 전에 개별 행을 필터링하려면 'WHERE' 절을 사용하고 그룹화 및 집계 후에 그룹을 필터링하려면 'HAVING' 절
+-- 몇일 이상일 때 날짜 차이 로 구할때 1을 더해줘야하늕 ㅣ아닌지 판단 잘하기
+SELECT CAR_ID, ROUND(AVG(DATEDIFF(END_DATE, START_DATE)+1),1) AS AVERAGE_DURATION
+FROM CAR_RENTAL_COMPANY_RENTAL_HISTORY
+GROUP BY CAR_ID
+HAVING AVG(DATEDIFF(END_DATE, START_DATE)+1)>=7
+ORDER BY AVERAGE_DURATION DESC, CAR_ID DESC
+
+--USED_GOODS_BOARD 테이블에서 2022년 10월 5일에 등록된 중고거래 게시물의 게시글 ID, 작성자 ID, 게시글 제목, 가격, 거래상태를 조회하는 SQL문을 작성해주세요. 거래상태가 SALE 이면 판매중, RESERVED이면 예약중, DONE이면 거래완료 분류하여 출력해주시고, 결과는 게시글 ID를 기준으로 내림차순 정렬해주세요.
+--특정 날짜 추출할때 ''안에 넣기
+--CASE WHEN THEN  WHEN THEN END 기억하기
+SELECT BOARD_ID, WRITER_ID, TITLE, PRICE,
+    CASE 
+        WHEN STATUS = 'SALE' THEN '판매중'
+        WHEN STATUS = 'RESERVED' THEN '예약중'
+        ELSE '거래완료'
+    END AS STATUS
+FROM USED_GOODS_BOARD
+WHERE CREATED_DATE = '2022-10-05'
+ORDER BY BOARD_ID DESC;
+
+--PATIENT, DOCTOR 그리고 APPOINTMENT 테이블에서 2022년 4월 13일 취소되지 않은 흉부외과(CS) 진료 예약 내역을 조회하는 SQL문을 작성해주세요. 진료예약번호, 환자이름, 환자번호, 진료과코드, 의사이름, 진료예약일시 항목이 출력되도록 작성해주세요. 결과는 진료예약일시를 기준으로 오름차순 정렬해주세요.
+--테이블 세개
+--날짜 저렇게도 할 수 있구나 ~
+SELECT a.APNT_NO, p.PT_NAME, a.PT_NO, a.MCDP_CD, d.DR_NAME, a.APNT_YMD
+FROM APPOINTMENT AS a
+JOIN PATIENT AS p ON a.PT_NO = p.PT_NO
+JOIN DOCTOR AS d ON a.MDDR_ID = d.DR_ID
+WHERE a.APNT_YMD LIKE '2022-04-13%'
+    AND a.MCDP_CD = 'CS'
+    AND a.APNT_CNCL_YN ='N'
+ORDER BY a.APNT_YMD ASC;
+
+--FOOD_ORDER 테이블에서 5월 1일을 기준으로 주문 ID, 제품 ID, 출고일자, 출고여부를 조회하는 SQL문을 작성해주세요. 출고여부는 5월 1일까지 출고완료로 이 후 날짜는 출고 대기로 미정이면 출고미정으로 출력해주시고, 결과는 주문 ID를 기준으로 오름차순 정렬해주세요.
+SELECT ORDER_ID, PRODUCT_ID, DATE_FORMAT(OUT_DATE,'%Y-%m-%d') AS OUT_DATE,
+    CASE
+        WHEN OUT_DATE > '2022-05-01' THEN '출고대기'
+        WHEN OUT_DATE <= '2022-05-01' THEN '출고완료'
+        ELSE '출고미정'
+    END AS '출고여부'
+FROM FOOD_ORDER
+ORDER BY ORDER_ID ASC;
+
+--USED_GOODS_BOARD와 USED_GOODS_FILE 테이블에서 조회수가 가장 높은 중고거래 게시물에 대한 첨부파일 경로를 조회하는 SQL문을 작성해주세요. 첨부파일 경로는 FILE ID를 기준으로 내림차순 정렬해주세요. 기본적인 파일경로는 /home/grep/src/ 이며, 게시글 ID를 기준으로 디렉토리가 구분되고, 파일이름은 파일 ID, 파일 이름, 파일 확장자로 구성되도록 출력해주세요. 조회수가 가장 높은 게시물은 하나만 존재합니다.
+-- 필드 값들 더할때 CONCAT(,,,,,,)
+SELECT CONCAT('/home/grep/src/', f.BOARD_ID, '/', f.FILE_ID, f.FILE_NAME, f.FILE_EXT) AS FILE_PATH
+FROM USED_GOODS_BOARD as b
+JOIN USED_GOODS_FILE AS f ON b.BOARD_ID = f.BOARD_ID
+WHERE b.VIEWS = (
+    SELECT MAX(VIEWS)
+    FROM USED_GOODS_BOARD
+)
+ORDER BY f.FILE_ID DESC;
+
+--CAR_RENTAL_COMPANY_RENTAL_HISTORY 테이블에서 대여 시작일이 2022년 9월에 속하는 대여 기록에 대해서 대여 기간이 30일 이상이면 '장기 대여' 그렇지 않으면 '단기 대여' 로 표시하는 컬럼(컬럼명: RENT_TYPE)을 추가하여 대여기록을 출력하는 SQL문을 작성해주세요. 결과는 대여 기록 ID를 기준으로 내림차순 정렬해주세요.
+-- 또 DATEDIFF했는데 1일 안 더하고 생각해서 계속 틀렸다. 정신차리자
+SELECT HISTORY_ID, CAR_ID, DATE_FORMAT(START_DATE, '%Y-%m-%d') AS START_DATE, DATE_FORMAT(END_DATE, '%Y-%m-%d') AS END_DATE,
+    CASE
+        WHEN DATEDIFF(END_DATE, START_DATE) < 29 THEN '단기 대여'
+        ELSE '장기 대여'
+    END AS 'RENT_TYPE'
+FROM CAR_RENTAL_COMPANY_RENTAL_HISTORY
+WHERE START_DATE LIKE '2022-09-%'
+ORDER BY HISTORY_ID DESC;
+
+--CAR_RENTAL_COMPANY_CAR 테이블과 CAR_RENTAL_COMPANY_RENTAL_HISTORY 테이블과 CAR_RENTAL_COMPANY_DISCOUNT_PLAN 테이블에서 자동차 종류가 '트럭'인 자동차의 대여 기록에 대해서 대여 기록 별로 대여 금액(컬럼명: FEE)을 구하여 대여 기록 ID와 대여 금액 리스트를 출력하는 SQL문을 작성해주세요. 결과는 대여 금액을 기준으로 내림차순 정렬하고, 대여 금액이 같은 경우 대여 기록 ID를 기준으로 내림차순 정렬해주세요.
+SELECT r.HISTORY_ID, 
+    ROUND(DAILY_FEE * (DATEDIFF(r.END_DATE, r.START_DATE)+1) * (
+    CASE
+        when DATEDIFF(END_DATE,START_DATE)+1 < 7 then 1
+    when DATEDIFF(END_DATE,START_DATE)+1 < 30 then 0.95
+    when DATEDIFF(END_DATE,START_DATE)+1 < 90 then 0.92
+    else 0.85 end)) AS 'FEE'
+FROM CAR_RENTAL_COMPANY_CAR AS c
+JOIN CAR_RENTAL_COMPANY_RENTAL_HISTORY AS r ON c.CAR_ID = r.CAR_ID
+JOIN CAR_RENTAL_COMPANY_DISCOUNT_PLAN AS d ON c.CAR_TYPE = d.CAR_TYPE
+WHERE c.CAR_TYPE = '트럭'
+GROUP BY r.HISTORY_ID
+ORDER BY FEE DESC, HISTORY_ID DESC;
 
 
 
 
+--CAR_RENTAL_COMPANY_CAR 테이블에서 '네비게이션' 옵션이 포함된 자동차 리스트를 출력하는 SQL문을 작성해주세요. 결과는 자동차 ID를 기준으로 내림차순 정렬해주세요.
+SELECT *
+FROM CAR_RENTAL_COMPANY_CAR
+WHERE OPTIONS LIKE '%네비게이션%'
+ORDER BY CAR_ID DESC;
 
-
-
-
-
-
-
+--USED_GOODS_BOARD와 USED_GOODS_USER 테이블에서 중고 거래 게시물을 3건 이상 등록한 사용자의 사용자 ID, 닉네임, 전체주소, 전화번호를 조회하는 SQL문을 작성해주세요. 이때, 전체 주소는 시, 도로명 주소, 상세 주소가 함께 출력되도록 해주시고, 전화번호의 경우 xxx-xxxx-xxxx 같은 형태로 하이픈 문자열(-)을 삽입하여 출력해주세요. 결과는 회원 ID를 기준으로 내림차순 정렬해주세요.
+--다시보자
+SELECT u.USER_ID, u.NICKNAME, CONCAT(u.CITY,' ', u.STREET_ADDRESS1, ' ',u.STREET_ADDRESS2) AS 전체주소, CONCAT(SUBSTRING(u.TLNO,1,3),'-',SUBSTRING(u.TLNO,4,4),'-',SUBSTRING(u.TLNO,8,4)) AS '전화번호'
+FROM USED_GOODS_USER u
+JOIN (
+    SELECT WRITER_ID
+    FROM USED_GOODS_BOARD
+    GROUP BY WRITER_ID
+    HAVING COUNT(*) >= 3
+) b ON u.USER_ID = b.WRITER_ID
+ORDER BY u.USER_ID DESC;
 
 --동물 보호소에 들어온 동물 중 이름이 Lucy, Ella, Pickle, Rogan, Sabrina, Mitty인 동물의 아이디와 이름, 성별 및 중성화 여부를 조회하는 SQL 문을 작성해주세요.
 -- OR 이 여러개 이면  IN (안에 묶어버리기)
